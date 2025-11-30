@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViajesÉpica - Paga con Mercado Pago</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Mercado Pago SDK -->
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    
+    <style>
+        :root {
+            --primary: #0A5C5C;
+            --primary-dark: #084444;
+            --accent: #E8925C;
+            --accent-light: #F4B183;
+            --sand: #F5EBE0;
+            --navy: #1A1A2E;
+            --light: #FEFEFE;
+            --mp-blue: #009EE3;
+            --shadow: rgba(10, 92, 92, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--light);
+            color: var(--navy);
+            overflow-x: hidden;
+        }
+
+        .hero {
+            position: relative;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(232, 146, 92, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(244, 177, 131, 0.15) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+
+        .nav {
+            position: relative;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 5%;
+            animation: slideDown 0.8s ease;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--light);
+            letter-spacing: 1px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 400;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 10% 5%;
+            animation: fadeInUp 1s ease 0.3s backwards;
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--light);
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            color: var(--sand);
+            max-width: 700px;
+            margin: 0 auto 3rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            padding: 1.2rem 3rem;
+            background: var(--accent);
+            color: var(--light);
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(232, 146, 92, 0.3);
+            animation: fadeInUp 1s ease 0.6s backwards;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(232, 146, 92, 0.4);
+            background: var(--accent-light);
+        }
+
+        .packages {
+            padding: 8rem 5%;
+            background: var(--sand);
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 5rem;
+            font-weight: 300;
+        }
+
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .package-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px var(--shadow);
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+
+        .package-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(10, 92, 92, 0.25);
+        }
+
+        .package-image {
+            height: 280px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .package-image::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+        }
+
+        .package-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .msi-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--mp-blue);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        .package-content {
+            padding: 2rem;
+        }
+
+        .package-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+        }
+
+        .package-description {
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .package-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .package-features li {
+            padding: 0.5rem 0;
+            color: #555;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .package-features li::before {
+            content: '✓';
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .package-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--sand);
+        }
+
+        .package-price {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .package-price span {
+            font-size: 0.9rem;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .package-price small {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--mp-blue);
+            font-family: 'Montserrat', sans-serif;
+            margin-top: 0.3rem;
+        }
+
+        .book-btn {
+            padding: 0.9rem 2rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .book-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 3% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 700px;
+            border-radius: 20px;
+            position: relative;
+            animation: slideUp 0.4s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .close {
+            position: absolute;
+            right: 25px;
+            top: 25px;
+            color: white;
+            font-size: 2rem;
+            font-weight: 300;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .close:hover {
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--navy);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(10, 92, 92, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .summary {
+            background: var(--sand);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            font-size: 0.95rem;
+        }
+
+        .summary-row.total {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            padding-top: 1rem;
+            border-top: 2px solid #d0d0d0;
+        }
+
+        .payment-info {
+            background: #E8F5FF;
+            border-left: 4px solid var(--mp-blue);
+            padding: 1.2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .payment-info h4 {
+            color: var(--mp-blue);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .payment-info p {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .payment-info ul {
+            margin-top: 0.8rem;
+            padding-left: 1.5rem;
+        }
+
+        .payment-info li {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, var(--mp-blue), #0086c3);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 158, 227, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .success-message .checkmark {
+            width: 80px;
+            height: 80px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        .success-message .checkmark::after {
+            content: '✓';
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        footer {
+            background: var(--navy);
+            color: white;
+            padding: 3rem 5%;
+            text-align: center;
+        }
+
+        footer p {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .packages-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <nav class="nav">
+            <div class="logo">ViajesÉpica</div>
+            <ul class="nav-links">
+                <li><a href="#paquetes">Paquetes</a></li>
+                <li><a href="#destinos">Destinos</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </nav>
+        <div class="hero-content">
+            <h1>Descubre el Mundo</h1>
+            <p>Experiencias únicas diseñadas para crear recuerdos inolvidables. Paga seguro con Mercado Pago.</p>
+            <a href="#paquetes" class="cta-btn">EXPLORAR PAQUETES</a>
+        </div>
+    </div>
+
+    <!-- Packages Section -->
+    <section class="packages" id="paquetes">
+        <h2 class="section-title">Paquetes Destacados</h2>
+        <p class="section-subtitle">Reserva ahora y paga en hasta 12 meses sin intereses</p>
+        
+        <div class="packages-grid">
+            <!-- Package 1 -->
+            <div class="package-card" data-package="Playa Paraíso" data-price="25999">
+                <div class="package-image" style="background-image: url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800')">
+                    <div class="package-badge">Más Popular</div>
+                    <div class="msi-badge">12 MSI</div>
+                </div>
+                <div class="package-content">
+                    <h3 class="package-title">Playa Paraíso</h3>
+                    <p class="package-description">7 días en las playas más hermosas del Caribe. Incluye hotel 5 estrellas, comidas y actividades acuáticas.</p>
+                    <ul class="package-features">
+                        <li>Hotel 5 estrellas todo incluido</li>
+                        <li>Vuelos redondos incluidos</li>
+                        <li>Tours y actividades</li>
+                        <li>Seguro de viaje</li>
+                    </ul>
+                    <div class="package-footer">
+                        <div class="package-price">
+                            $25,999 <span>MXN por persona</span>
+                            <small>o desde $2,167/mes</small>
+                        </div>
+                        <button class="book-btn" onclick="openBooking(this)">Reservar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Package 2 -->
+            <div class="package-card" data-package="Aventura en los Andes" data-price="32999">
+                <div class="package-image" style="background-image: url('https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800')">
+                    <div class="package-badge">Aventura</div>
+                    <div class="msi-badge">12 MSI</div>
+                </div>
+                <div class="package-content">
+                    <h3 class="package-title">Aventura en los Andes</h3>
+                    <p class="package-description">10 días explorando Machu Picchu, Cusco y el Valle Sagrado con guías expertos.</p>
+                    <ul class="package-features">
+                        <li>Hospedaje boutique</li>
+                        <li>Guías certificados</li>
+                        <li>Entrada a Machu Picchu</li>
+                        <li>Transporte privado</li>
+                    </ul>
+                    <div class="package-footer">
+                        <div class="package-price">
+                            $32,999 <span>MXN por persona</span>
+                            <small>o desde $2,750/mes</small>
+                        </div>
+                        <button class="book-btn" onclick="openBooking(this)">Reservar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Package 3 -->
+            <div class="package-card" data-package="Europa Clásica" data-price="49999">
+                <div class="package-image" style="background-image: url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800')">
+                    <div class="package-badge">Lujo</div>
+                    <div class="msi-badge">12 MSI</div>
+                </div>
+                <div class="package-content">
+                    <h3 class="package-title">Europa Clásica</h3>
+                    <p class="package-description">14 días recorriendo París, Roma, Venecia y Barcelona con experiencias VIP.</p>
+                    <ul class="package-features">
+                        <li>Hoteles 5 estrellas</li>
+                        <li>Trenes de alta velocidad</li>
+                        <li>Tours privados</li>
+                        <li>Cenas gourmet incluidas</li>
+                    </ul>
+                    <div class="package-footer">
+                        <div class="package-price">
+                            $49,999 <span>MXN por persona</span>
+                            <small>o desde $4,167/mes</small>
+                        </div>
+                        <button class="book-btn" onclick="openBooking(this)">Reservar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2 id="modalTitle">Reservar Paquete</h2>
+                <p id="modalSubtitle"></p>
+            </div>
+            <div class="modal-body">
+                <form id="bookingForm">
+                    <div class="payment-info">
+                        <h4>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            Pago Seguro con Mercado Pago
+                        </h4>
+                        <p>Acepta todos los métodos de pago:</p>
+                        <ul>
+                            <li>💳 Tarjetas de crédito y débito</li>
+                            <li>🏪 Efectivo en OXXO, 7-Eleven, etc.</li>
+                            <li>🏦 Transferencia bancaria (SPEI)</li>
+                            <li>📱 Paga con tu cuenta Mercado Pago</li>
+                            <li>✨ <strong>Hasta 12 meses sin intereses</strong></li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="customerName" required placeholder="Juan Pérez González">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="customerEmail" required placeholder="juan@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono *</label>
+                            <input type="tel" id="customerPhone" required placeholder="5512345678">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Número de Viajeros *</label>
+                            <select id="travelers" onchange="updateTotal()" required>
+                                <option value="1">1 persona</option>
+                                <option value="2">2 personas</option>
+                                <option value="3">3 personas</option>
+                                <option value="4">4 personas</option>
+                                <option value="5">5 personas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Salida *</label>
+                            <input type="date" id="departureDate" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Comentarios Adicionales</label>
+                        <textarea id="comments" rows="3" placeholder="¿Alguna solicitud especial? (opcional)"></textarea>
+                    </div>
+
+                    <div class="summary">
+                        <div class="summary-row">
+                            <span>Paquete:</span>
+                            <span id="summaryPackage">-</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Precio por persona:</span>
+                            <span id="summaryPrice">$0</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Viajeros:</span>
+                            <span id="summaryTravelers">1</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total a pagar:</span>
+                            <span id="summaryTotal">$0</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                            <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+                        </svg>
+                        Continuar a Mercado Pago
+                    </button>
+                </form>
+
+                <div class="success-message" id="successMessage">
+                    <div class="checkmark"></div>
+                    <h2 style="color: var(--primary); font-family: 'Playfair Display', serif; margin-bottom: 1rem;">¡Redirigiendo a Mercado Pago!</h2>
+                    <p style="color: #666; margin-bottom: 2rem;">Te estamos llevando a la pasarela de pago segura de Mercado Pago para completar tu reserva.</p>
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 ViajesÉpica. Todos los derechos reservados. Pagos procesados de forma segura por Mercado Pago.</p>
+    </footer>
+
+    <script>
+        // CONFIGURACIÓN - PUBLIC KEY DE MERCADO PAGO
+        const MERCADOPAGO_PUBLIC_KEY = 'APP_USR-dfb174ad-0e7c-452a-804d-e010eb28a18d';
+        
+        let currentPackage = '';
+        let currentPrice = 0;
+
+        function openBooking(button) {
+            const card = button.closest('.package-card');
+            currentPackage = card.dataset.package;
+            currentPrice = parseFloat(card.dataset.price);
+
+            document.getElementById('modalTitle').textContent = 'Reservar: ' + currentPackage;
+            document.getElementById('summaryPackage').textContent = currentPackage;
+            document.getElementById('summaryPrice').textContent = '$' + currentPrice.toLocaleString('es-MX') + ' MXN';
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('departureDate').min = tomorrow.toISOString().split('T')[0];
+            
+            updateTotal();
+            
+            document.getElementById('bookingModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('bookingModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.getElementById('bookingForm').style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('bookingForm').reset();
+        }
+
+        function updateTotal() {
+            const travelers = parseInt(document.getElementById('travelers').value);
+            const total = currentPrice * travelers;
+            
+            document.getElementById('summaryTravelers').textContent = travelers;
+            document.getElementById('summaryTotal').textContent = '$' + total.toLocaleString('es-MX') + ' MXN';
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading"></div> Procesando...';
+
+            const travelers = parseInt(document.getElementById('travelers').value);
+            const total = currentPrice * travelers;
+            
+            const orderData = {
+                package: currentPackage,
+                customerName: document.getElementById('customerName').value,
+                customerEmail: document.getElementById('customerEmail').value,
+                customerPhone: document.getElementById('customerPhone').value,
+                travelers: travelers,
+                departureDate: document.getElementById('departureDate').value,
+                comments: document.getElementById('comments').value,
+                unitPrice: currentPrice,
+                totalAmount: total
+            };
+
+            console.log('Datos de la orden:', orderData);
+
+            try {
+                // Llamada REAL al backend
+                const response = await fetch('http://localhost:3000/api/create-preference', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+
+                const data = await response.json();
+                
+                console.log('Respuesta del backend:', data);
+                
+                // Redirigir a Mercado Pago
+                window.location.href = data.init_point;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Hubo un error al procesar tu reserva. Por favor intenta nuevamente. Verifica que el backend esté corriendo en puerto 3000.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+                    </svg>
+                    Continuar a Mercado Pago
+                `;
+            }
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('bookingModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
